@@ -88,6 +88,21 @@ def _logit(a: np.ndarray) -> np.ndarray:
     return np.log(a / (1.0 - a))
 
 
+def srgb_to_linear(colors: np.ndarray) -> np.ndarray:
+    """sRGB [0, 1] -> linear light.
+
+    Source RGB is sRGB (display/photo space), but SuperSplat -- like most
+    physically-based renderers -- treats a splat's DC color term as linear
+    light and applies its own linear->sRGB conversion on display. Writing
+    sRGB straight through gets gamma-corrected a second time: mid-tones
+    blow out bright and colors oversaturate (verified against a real scan:
+    a true 0.4 rendered as ~0.67). Converting to linear first makes the
+    viewer's own conversion round-trip back to the correct color.
+    """
+    c = np.clip(colors, 0.0, 1.0)
+    return np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
+
+
 def colors_to_sh_dc(colors: np.ndarray) -> np.ndarray:
     """RGB in [0, 1] -> degree-0 spherical harmonic DC coefficient."""
     return ((colors - 0.5) / SH_C0).astype(np.float32)

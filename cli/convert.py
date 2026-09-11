@@ -42,6 +42,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     misc.add_argument("--include-f-rest", action="store_true", help="Écrire 45 coefficients f_rest_* à zéro (compat. lecteurs stricts SH deg 1-3)")
     misc.add_argument("--no-zup-convert", dest="zup_convert", action="store_false", default=True,
                        help="Ne pas convertir Z-up (géomatique/BIM/ReCap) vers Y-up (SuperSplat) — actif par défaut")
+    misc.add_argument("--no-srgb-to-linear", dest="srgb_to_linear", action="store_false", default=True,
+                       help="Ne pas convertir sRGB vers linéaire avant l'export — actif par défaut ; désactivez si les couleurs paraissent trop sombres/plates dans votre lecteur")
     misc.add_argument("--quiet", action="store_true", help="Ne pas afficher la barre de progression")
 
     return parser
@@ -66,6 +68,7 @@ def main(argv: list[str] | None = None) -> int:
         voxel_size=args.voxel_size,
         include_f_rest=args.include_f_rest,
         convert_z_up_to_y_up=args.zup_convert,
+        srgb_to_linear=args.srgb_to_linear,
     )
 
     try:

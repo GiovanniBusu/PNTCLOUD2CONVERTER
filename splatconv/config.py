@@ -32,6 +32,10 @@ class SplatParams:
 
     # --- Color model ---
     include_f_rest: bool = False  # write 45 zeroed f_rest_* (SH deg 1-3) for compat
+    # SuperSplat/most PBR renderers treat the DC color term as linear light and
+    # apply their own linear->sRGB display conversion; source RGB is sRGB, so
+    # convert it to linear first or colors render oversaturated/blown out.
+    srgb_to_linear: bool = True
 
     # --- Safety ---
     max_points_without_voxel: int = 30_000_000

@@ -113,6 +113,7 @@ async function startConversion() {
     voxel_size: parseFloat(el("p-voxel").value) || null,
     include_f_rest: el("p-frest").checked,
     convert_z_up_to_y_up: el("p-zup").checked,
+    srgb_to_linear: el("p-srgb").checked,
   };
 
   el("btn-convert").disabled = true;

@@ -26,6 +26,7 @@ from .processing.splat import (
     compute_rotations,
     compute_scales,
     local_mean_neighbor_distance,
+    srgb_to_linear,
 )
 
 ProgressCallback = Optional[Callable[[str, float], None]]
@@ -125,7 +126,7 @@ def convert_point_cloud(
     log_scales = compute_scales(mean_nn_dist, params.scale_factor, params.anisotropy_ratio)
     rotations = compute_rotations(normals)
     opacity_logit = compute_opacity_logit(mean_nn_dist, params.opacity_dense, params.opacity_sparse)
-    f_dc = colors_to_sh_dc(colors)
+    f_dc = colors_to_sh_dc(srgb_to_linear(colors) if params.srgb_to_linear else colors)
     _progress(progress_cb, "splats", 1.0, "Splats générés")
 
     n_splats = points.shape[0]

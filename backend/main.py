@@ -45,6 +45,7 @@ class ConvertParams(BaseModel):
     voxel_size: float | None = None
     include_f_rest: bool = False
     convert_z_up_to_y_up: bool = True
+    srgb_to_linear: bool = True
 
     def to_splat_params(self) -> SplatParams:
         return SplatParams(
@@ -55,6 +56,7 @@ class ConvertParams(BaseModel):
             opacity_sparse=self.opacity_sparse,
             center_mode=self.center_mode,
             convert_z_up_to_y_up=self.convert_z_up_to_y_up,
+            srgb_to_linear=self.srgb_to_linear,
             voxel_size=self.voxel_size,
             include_f_rest=self.include_f_rest,
         )

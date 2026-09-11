@@ -8,6 +8,7 @@ from splatconv.config import SplatParams
 from splatconv.errors import EmptyPointCloudError, RcpNotSupportedError, UnsupportedFormatError
 from splatconv.io.readers import load_point_cloud
 from splatconv.pipeline import convert_point_cloud
+from splatconv.processing.splat import SH_C0, srgb_to_linear
 
 
 def _write_xyz_cube(path: str, points_per_edge: int = 10, offset=(0.0, 0.0, 0.0)) -> int:
@@ -122,6 +123,43 @@ def test_z_up_to_y_up_conversion_flattens_correct_axis(tmp_path):
     with open(result.offset_sidecar_path) as f:
         offset = json.load(f)
     assert offset["axis_convention"] == "z_up_source_converted_to_y_up_ply"
+
+
+def test_srgb_to_linear_matches_known_values():
+    vals = np.array([0.0, 0.5, 1.0])
+    lin = srgb_to_linear(vals)
+    np.testing.assert_allclose(lin, [0.0, 0.2140, 1.0], atol=1e-3)
+
+
+def _linear_to_srgb(c):
+    return np.where(c <= 0.0031308, c * 12.92, 1.055 * c ** (1 / 2.4) - 0.055)
+
+
+def test_srgb_fix_makes_viewer_reconstruction_match_source(tmp_path):
+    # Simulates what a PBR viewer (SuperSplat) does: reconstruct color from
+    # f_dc as linear, then apply its own linear->sRGB for display. With the
+    # fix, that round-trips back to the true source color; without it, it
+    # doesn't (confirming this was a real, measurable bug).
+    xyz_path = tmp_path / "flat.xyz"
+    true_color = np.array([0.9, 0.235, 0.235])  # a real (255,60,60)-ish red
+    rgb255 = np.round(true_color * 255).astype(int)
+    lines = [f"{i * 0.3} 0 0 {rgb255[0]} {rgb255[1]} {rgb255[2]}" for i in range(20)]
+    xyz_path.write_text("\n".join(lines) + "\n")
+
+    for srgb_flag, expect_match in [(True, True), (False, False)]:
+        out_path = tmp_path / f"flat_{srgb_flag}.splat.ply"
+        convert_point_cloud(
+            str(xyz_path), str(out_path), SplatParams(k_neighbors=6, srgb_to_linear=srgb_flag)
+        )
+        v = PlyData.read(str(out_path))["vertex"]
+        f_dc = np.array([v["f_dc_0"][0], v["f_dc_1"][0], v["f_dc_2"][0]])
+        linear = 0.5 + SH_C0 * f_dc
+        displayed = _linear_to_srgb(np.clip(linear, 0, 1))
+        err = np.linalg.norm(displayed - true_color)
+        if expect_match:
+            assert err < 0.01, f"with the fix, viewer reconstruction should match source (err={err})"
+        else:
+            assert err > 0.05, f"without the fix, viewer reconstruction should visibly diverge (err={err})"
 
 
 def test_rcp_file_raises_clear_guidance(tmp_path):
