@@ -6,6 +6,7 @@ from plyfile import PlyData
 
 from splatconv.config import SplatParams
 from splatconv.errors import EmptyPointCloudError, RcpNotSupportedError, UnsupportedFormatError
+from splatconv.io.readers import load_point_cloud
 from splatconv.pipeline import convert_point_cloud
 
 
@@ -78,6 +79,26 @@ def test_rcp_file_raises_clear_guidance(tmp_path):
     with pytest.raises(RcpNotSupportedError) as excinfo:
         convert_point_cloud(str(rcp_path), str(tmp_path / "out.ply"), SplatParams())
     assert "ReCap" in excinfo.value.message
+
+
+def test_pts_7col_uses_recap_column_order(tmp_path):
+    # Autodesk ReCap's documented .pts export order is X Y Z R G B I (RGB
+    # right after XYZ, intensity last) -- not "X Y Z I R G B". Reading it
+    # with the wrong offset shifts every channel by one column and renders
+    # as a solid, wrong-hued tint instead of the real per-point color.
+    pts_path = tmp_path / "recap.pts"
+    pts_path.write_text(
+        "2\n"
+        "0.0 0.0 0.0 200 10 5 180\n"
+        "1.0 0.0 0.0 5 200 10 90\n"
+    )
+    data = load_point_cloud(str(pts_path))
+    assert data.colors is not None
+    assert data.intensity is not None
+    np.testing.assert_allclose(data.colors[0], [200 / 255, 10 / 255, 5 / 255], atol=1e-3)
+    np.testing.assert_allclose(data.colors[1], [5 / 255, 200 / 255, 10 / 255], atol=1e-3)
+    # intensity is the last column (180, 90) -> min-max normalized to [0, 1]
+    assert data.intensity[0] > data.intensity[1]
 
 
 def test_unsupported_extension_raises(tmp_path):
