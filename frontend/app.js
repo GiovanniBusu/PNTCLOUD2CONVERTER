@@ -112,6 +112,7 @@ async function startConversion() {
     center_mode: el("p-center").value,
     voxel_size: parseFloat(el("p-voxel").value) || null,
     include_f_rest: el("p-frest").checked,
+    convert_z_up_to_y_up: el("p-zup").checked,
   };
 
   el("btn-convert").disabled = true;

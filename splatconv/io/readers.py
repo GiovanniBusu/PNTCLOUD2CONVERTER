@@ -248,16 +248,17 @@ def _read_pts_xyz(path: str, progress_cb: ProgressCallback) -> PointCloudData:
     colors = None
     intensity = None
 
-    # Common layouts:
+    # Common layouts -- position first, then color, then intensity, then
+    # normals last. Confirmed against a real Autodesk ReCap export (10 cols)
+    # and ReCap's documented 7-col order; RGB always lands right after XYZ.
     #   X Y Z                              (3 cols)
     #   X Y Z I                            (4 cols, .pts)
     #   X Y Z R G B                        (6 cols)
-    #   X Y Z R G B I                      (7 cols -- Autodesk ReCap's documented
-    #                                        .pts export order: RGB right after XYZ,
-    #                                        intensity *last*. Do not swap this back
-    #                                        to "X Y Z I R G B": that reads R/G/B one
-    #                                        column short and renders as solid red.)
-    #   X Y Z NX NY NZ R G B               (9 cols)
+    #   X Y Z R G B I                      (7 cols)
+    #   X Y Z R G B NX NY NZ               (9 cols, no intensity)
+    #   X Y Z R G B I NX NY NZ             (10 cols)
+    # Do NOT swap RGB/I or RGB/normals back to "intensity/normals first":
+    # that reads color one or more columns short and renders as solid red.
     normals = None
     if n_cols == 4:
         intensity = _normalize_intensity(arr[:, 3])
@@ -266,9 +267,13 @@ def _read_pts_xyz(path: str, progress_cb: ProgressCallback) -> PointCloudData:
     elif n_cols == 7:
         colors = _normalize_color_range(arr[:, 3:6])
         intensity = _normalize_intensity(arr[:, 6])
-    elif n_cols >= 9:
-        normals = arr[:, 3:6].astype(np.float32)
-        colors = _normalize_color_range(arr[:, 6:9])
+    elif n_cols == 9:
+        colors = _normalize_color_range(arr[:, 3:6])
+        normals = arr[:, 6:9].astype(np.float32)
+    elif n_cols >= 10:
+        colors = _normalize_color_range(arr[:, 3:6])
+        intensity = _normalize_intensity(arr[:, 6])
+        normals = arr[:, 7:10].astype(np.float32)
 
     _report(progress_cb, "Lecture terminée", 1.0)
     return PointCloudData(points=points, colors=colors, intensity=intensity, normals=normals)

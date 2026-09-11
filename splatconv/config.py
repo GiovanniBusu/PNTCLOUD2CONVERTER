@@ -22,6 +22,11 @@ class SplatParams:
     # --- Recentring ---
     center_mode: str = "centroid"  # "centroid" or "bbox_min"
 
+    # --- Axis convention ---
+    # Geomatics/BIM/ReCap sources are almost always Z-up; SuperSplat/PlayCanvas
+    # is Y-up. True by default so a level scan doesn't render tipped on its side.
+    convert_z_up_to_y_up: bool = True
+
     # --- Downsampling ---
     voxel_size: float | None = None  # None/0 disables voxel downsampling
 

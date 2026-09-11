@@ -19,7 +19,7 @@ from .io.readers import PointCloudData, load_point_cloud
 from .ply_writer import build_vertex_array, write_ply
 from .processing.downsample import voxel_downsample
 from .processing.normals import estimate_normals
-from .processing.recenter import recenter, write_offset_sidecar
+from .processing.recenter import convert_z_up_to_y_up, recenter, write_offset_sidecar
 from .processing.splat import (
     colors_to_sh_dc,
     compute_opacity_logit,
@@ -103,11 +103,17 @@ def convert_point_cloud(
         raise InsufficientMemoryError("Le sous-échantillonnage a supprimé tous les points (voxel trop grand ?).")
 
     points, offset = recenter(points, mode=params.center_mode)
+    if params.convert_z_up_to_y_up:
+        points = convert_z_up_to_y_up(points)
 
     _progress(progress_cb, "normals", 0.0, "Estimation des normales")
     if data.normals is not None and data.normals.shape[0] == n_after_downsample:
         normals = data.normals
+        if params.convert_z_up_to_y_up:
+            normals = convert_z_up_to_y_up(normals)
     else:
+        # points are already in the final (possibly Y-up) frame, so normals
+        # estimated from them come out correctly oriented with no extra step.
         normals = estimate_normals(points, k=params.k_neighbors)
     _progress(progress_cb, "normals", 1.0, "Normales calculées")
 
@@ -142,7 +148,9 @@ def convert_point_cloud(
     )
     os.makedirs(os.path.dirname(os.path.abspath(output_path)) or ".", exist_ok=True)
     write_ply(output_path, vertex_array)
-    sidecar_path = write_offset_sidecar(output_path, offset, params.center_mode)
+    sidecar_path = write_offset_sidecar(
+        output_path, offset, params.center_mode, axis_converted=params.convert_z_up_to_y_up
+    )
     _progress(progress_cb, "write", 1.0, "Terminé")
 
     file_size = os.path.getsize(output_path)

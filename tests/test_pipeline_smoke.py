@@ -72,6 +72,58 @@ def test_recentring_keeps_coordinates_small(tmp_path):
     assert offset["x"] == pytest.approx(swiss_offset[0], abs=1.0)
 
 
+def test_pts_10col_with_normals_confirmed_recap_layout(tmp_path):
+    # Confirmed against a real Autodesk ReCap export: X Y Z R G B I NX NY NZ.
+    # The last 3 columns are genuine unit normals (verified: sum of squares ~= 1).
+    pts_path = tmp_path / "cas.pts"
+    pts_path.write_text(
+        "2555142.910 1188513.712 467.116 154 163 123 124 -0.550 -0.824 -0.138\n"
+        "2555148.879 1188504.469 467.040 161 35 27 64 -0.366 -0.922 0.126\n"
+    )
+    data = load_point_cloud(str(pts_path))
+    assert data.colors is not None
+    assert data.intensity is not None
+    assert data.normals is not None
+    np.testing.assert_allclose(data.colors[0], [154 / 255, 163 / 255, 123 / 255], atol=1e-3)
+    np.testing.assert_allclose(data.normals[0], [-0.550, -0.824, -0.138], atol=1e-3)
+    assert np.linalg.norm(data.normals[0]) == pytest.approx(1.0, abs=0.01)
+
+
+def test_pts_9col_without_intensity(tmp_path):
+    pts_path = tmp_path / "nine.xyz"
+    pts_path.write_text("0 0 0 200 100 50 0 0 1\n" * 2)
+    data = load_point_cloud(str(pts_path))
+    assert data.intensity is None
+    assert data.colors is not None
+    assert data.normals is not None
+    np.testing.assert_allclose(data.normals[0], [0, 0, 1], atol=1e-6)
+
+
+def test_z_up_to_y_up_conversion_flattens_correct_axis(tmp_path):
+    # A level "floor" in Z-up source coords (X,Y spread wide, Z barely varies).
+    xyz_path = tmp_path / "floor.xyz"
+    n_side = 10
+    lines = []
+    for i in range(n_side):
+        for j in range(n_side):
+            lines.append(f"{i * 0.5} {j * 0.5} {(i + j) * 0.001} 200 150 100")
+    xyz_path.write_text("\n".join(lines) + "\n")
+
+    out_path = tmp_path / "floor.splat.ply"
+    result = convert_point_cloud(
+        str(xyz_path), str(out_path), SplatParams(k_neighbors=8, convert_z_up_to_y_up=True)
+    )
+    v = PlyData.read(str(out_path))["vertex"]
+    # the near-constant source Z should land in output Y (small spread there)
+    assert (v["y"].max() - v["y"].min()) < 0.05
+    assert (v["z"].max() - v["z"].min()) > 1.0
+
+    import json
+    with open(result.offset_sidecar_path) as f:
+        offset = json.load(f)
+    assert offset["axis_convention"] == "z_up_source_converted_to_y_up_ply"
+
+
 def test_rcp_file_raises_clear_guidance(tmp_path):
     rcp_path = tmp_path / "scan.rcp"
     rcp_path.write_bytes(b"not a real rcp file")

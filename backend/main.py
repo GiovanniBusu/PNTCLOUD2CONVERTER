@@ -44,6 +44,7 @@ class ConvertParams(BaseModel):
     center_mode: str = "centroid"
     voxel_size: float | None = None
     include_f_rest: bool = False
+    convert_z_up_to_y_up: bool = True
 
     def to_splat_params(self) -> SplatParams:
         return SplatParams(
@@ -53,6 +54,7 @@ class ConvertParams(BaseModel):
             opacity_dense=self.opacity_dense,
             opacity_sparse=self.opacity_sparse,
             center_mode=self.center_mode,
+            convert_z_up_to_y_up=self.convert_z_up_to_y_up,
             voxel_size=self.voxel_size,
             include_f_rest=self.include_f_rest,
         )

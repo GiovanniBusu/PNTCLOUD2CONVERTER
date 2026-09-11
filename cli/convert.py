@@ -40,6 +40,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     misc.add_argument("--voxel-size", type=float, default=None, help="Taille de voxel pour sous-échantillonnage (défaut : désactivé)")
     misc.add_argument("--center-mode", choices=["centroid", "bbox_min"], default="centroid", help="Mode de recentrage (défaut : centroid)")
     misc.add_argument("--include-f-rest", action="store_true", help="Écrire 45 coefficients f_rest_* à zéro (compat. lecteurs stricts SH deg 1-3)")
+    misc.add_argument("--no-zup-convert", dest="zup_convert", action="store_false", default=True,
+                       help="Ne pas convertir Z-up (géomatique/BIM/ReCap) vers Y-up (SuperSplat) — actif par défaut")
     misc.add_argument("--quiet", action="store_true", help="Ne pas afficher la barre de progression")
 
     return parser
@@ -63,6 +65,7 @@ def main(argv: list[str] | None = None) -> int:
         center_mode=args.center_mode,
         voxel_size=args.voxel_size,
         include_f_rest=args.include_f_rest,
+        convert_z_up_to_y_up=args.zup_convert,
     )
 
     try:

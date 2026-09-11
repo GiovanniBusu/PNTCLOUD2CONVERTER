@@ -26,18 +26,44 @@ def recenter(points: np.ndarray, mode: str = "centroid") -> tuple[np.ndarray, np
     return points - offset, offset
 
 
-def write_offset_sidecar(ply_output_path: str, offset: np.ndarray, mode: str) -> str:
+def convert_z_up_to_y_up(vectors: np.ndarray) -> np.ndarray:
+    """Right-handed Z-up -> Y-up remap: (x, y, z) -> (x, z, -y).
+
+    Geomatics/BIM/ReCap sources are almost always Z-up (Z = elevation);
+    PlayCanvas/SuperSplat, like most realtime engines, is Y-up. Without
+    this, a level scan renders tipped onto its side. Works for both
+    positions and normals -- it's a pure rotation, no translation.
+    """
+    out = np.empty_like(vectors)
+    out[:, 0] = vectors[:, 0]
+    out[:, 1] = vectors[:, 2]
+    out[:, 2] = -vectors[:, 1]
+    return out
+
+
+def write_offset_sidecar(
+    ply_output_path: str, offset: np.ndarray, mode: str, axis_converted: bool = False
+) -> str:
     sidecar_path = os.path.splitext(ply_output_path)[0] + ".offset.json"
+    if axis_converted:
+        note = (
+            "Le PLY est en Y-up (pour SuperSplat/PlayCanvas) alors que la source etait Z-up. "
+            "Pour retrouver les coordonnees monde d'origine (Z-up) a partir d'un point "
+            "(px,py,pz) du PLY : x = px + offset.x ; y = -pz + offset.y ; z = py + offset.z."
+        )
+    else:
+        note = (
+            "Coordonnees locales du PLY = coordonnees monde - offset. "
+            "Ajouter cet offset aux positions x,y,z du PLY pour retrouver "
+            "les coordonnees monde d'origine (ex. MN95/LV95)."
+        )
     payload = {
         "x": float(offset[0]),
         "y": float(offset[1]),
         "z": float(offset[2]),
         "mode": mode,
-        "note": (
-            "Coordonnees locales du PLY = coordonnees monde - offset. "
-            "Ajouter cet offset aux positions x,y,z du PLY pour retrouver "
-            "les coordonnees monde d'origine (ex. MN95/LV95)."
-        ),
+        "axis_convention": "z_up_source_converted_to_y_up_ply" if axis_converted else "unchanged",
+        "note": note,
     }
     with open(sidecar_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2)
