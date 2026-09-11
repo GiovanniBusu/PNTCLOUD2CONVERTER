@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>E57/RCP → Gaussian Splat</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Convertisseur nuage de points → Gaussian Splat (SuperSplat)</h1>
+      <p>Générez, depuis un scan laser coloré (.e57, .pts, .xyz, .las), un fichier .ply de splats de surface prêt pour <a href="https://superspl.at/editor" target="_blank" rel="noopener" style="color: inherit;">SuperSplat</a>.</p>
+    </header>
+
+    <section class="panel">
+      <div id="dropzone">
+        <div>Glissez-déposez un fichier ici, ou cliquez pour en choisir un</div>
+        <div class="hint">.e57 (recommandé), .pts, .xyz, .txt, .las, .laz — .rcp non supporté directement (voir README)</div>
+        <input id="file-input" type="file" accept=".e57,.pts,.xyz,.txt,.las,.laz,.rcp,.rcs" />
+      </div>
+      <div id="file-info-row" class="file-info" hidden style="margin-top: 14px;">
+        <span><span class="name" id="file-name"></span> <span class="meta" id="file-meta"></span></span>
+        <button class="secondary" id="btn-clear" type="button">Changer de fichier</button>
+      </div>
+      <div id="upload-error" class="banner error" hidden></div>
+    </section>
+
+    <section class="panel" id="params-panel" hidden>
+      <h3 style="margin-top:0;">Paramètres</h3>
+      <div class="params-grid">
+        <div class="field">
+          <label for="p-k">Voisins k (échelle + normales)</label>
+          <input type="number" id="p-k" value="10" min="3" step="1" />
+        </div>
+        <div class="field">
+          <label for="p-scale">Facteur d'échelle (comblement de trous)</label>
+          <input type="number" id="p-scale" value="1.5" min="0.1" step="0.1" />
+        </div>
+        <div class="field">
+          <label for="p-aniso">Anisotropie (aplatissement, 0–1)</label>
+          <input type="number" id="p-aniso" value="0.3" min="0.05" max="1" step="0.05" />
+        </div>
+        <div class="field">
+          <label for="p-op-dense">Opacité zone dense</label>
+          <input type="number" id="p-op-dense" value="0.97" min="0.1" max="0.999" step="0.01" />
+        </div>
+        <div class="field">
+          <label for="p-op-sparse">Opacité plancher (zone clairsemée)</label>
+          <input type="number" id="p-op-sparse" value="0.5" min="0.05" max="0.99" step="0.01" />
+        </div>
+        <div class="field">
+          <label for="p-voxel">Taille voxel (sous-échantillonnage, 0 = désactivé)</label>
+          <input type="number" id="p-voxel" value="0" min="0" step="0.005" />
+        </div>
+        <div class="field">
+          <label for="p-center">Mode de recentrage</label>
+          <select id="p-center">
+            <option value="centroid" selected>Centroïde</option>
+            <option value="bbox_min">Min de la bounding box</option>
+          </select>
+        </div>
+        <div class="field checkbox">
+          <input type="checkbox" id="p-frest" />
+          <label for="p-frest">Écrire f_rest_* à zéro (compat. lecteurs stricts)</label>
+        </div>
+      </div>
+      <button id="btn-convert" type="button">Convertir</button>
+
+      <div class="progress-row" id="progress-row" hidden>
+        <div class="progress-bar"><div id="progress-fill"></div></div>
+        <div class="progress-label" id="progress-label">En attente…</div>
+      </div>
+
+      <div id="convert-error" class="banner error" hidden></div>
+    </section>
+
+    <section class="panel" id="result-panel" hidden>
+      <h3 style="margin-top:0;">Résultat</h3>
+      <div class="stats-grid">
+        <div class="stat"><div class="value" id="stat-source">–</div><div class="label">points source</div></div>
+        <div class="stat"><div class="value" id="stat-splats">–</div><div class="label">splats générés</div></div>
+        <div class="stat"><div class="value" id="stat-size">–</div><div class="label">taille du fichier</div></div>
+        <div class="stat"><div class="value" id="stat-time">–</div><div class="label">durée</div></div>
+      </div>
+      <div id="result-warnings"></div>
+      <div class="actions">
+        <button id="btn-download" type="button">Télécharger le .ply</button>
+        <button class="secondary" id="btn-download-offset" type="button">Télécharger l'offset (.json)</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

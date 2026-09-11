@@ -1,0 +1,7 @@
+{
+  "x": -1.1842378929335004e-19,
+  "y": -1.8947806286936006e-18,
+  "z": 0.0,
+  "mode": "centroid",
+  "note": "Coordonnees locales du PLY = coordonnees monde - offset. Ajouter cet offset aux positions x,y,z du PLY pour retrouver les coordonnees monde d'origine (ex. MN95/LV95)."
+}

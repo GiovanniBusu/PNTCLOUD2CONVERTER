@@ -1,0 +1,14 @@
+numpy>=1.24
+scipy>=1.10
+plyfile>=1.0
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+pydantic>=2.0
+pye57>=0.4.20
+laspy>=2.5
+
+# Optionnel : accélère/ameliore l'estimation des normales et le
+# sous-échantillonnage voxel. Absent -> repli automatique en numpy/scipy pur
+# (voir README, section "Limites connues" / "A propos d'Open3D").
+# open3d>=0.18
